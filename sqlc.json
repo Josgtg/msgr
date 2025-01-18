@@ -8,7 +8,7 @@
       "gen": {
         "go": {
           "package": "database",
-          "out": "database/sqlc",
+          "out": "database",
           "sql_package": "pgx/v5"
         }
       }

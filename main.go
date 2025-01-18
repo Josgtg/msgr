@@ -1,15 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net/http"
+	"msgr/database"
 	"os"
 
 	"github.com/joho/godotenv"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
@@ -22,10 +18,16 @@ func main() {
 		log.Fatal("variable PORT was not found in .env file")
 	}
 
-	router := chi.NewRouter()
-	router.Use(middleware.Logger)
-	router.Get("/", func(w http.ResponseWriter, router *http.Request) {
-		w.Write([]byte("Hello World!"))
-	})
-	http.ListenAndServe(fmt.Sprintf(":%s", port), router)
+	var dbUrl string = os.Getenv("DB_URL")
+	if dbUrl == "" {
+		log.Fatal("variable DB_URL was not found in .env file")
+	}
+
+	ctx, conn, err := database.GetConnection(dbUrl)
+	if err != nil {
+		log.Fatal("failed to connect to db, check if url provided is valid")
+	}
+	defer conn.Close(ctx)
+
+	_ = database.New(conn)
 }

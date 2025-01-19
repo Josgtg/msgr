@@ -27,9 +27,9 @@ func RespondMessage(w http.ResponseWriter, status int, message string) {
 	RespondJSON(w, status, response)
 }
 
-func RespondID[I pgtype.UUID | uuid.UUID](w http.ResponseWriter, id I) {
+func RespondID[I pgtype.UUID | uuid.UUID](w http.ResponseWriter, status int, id I) {
 	response := struct {
 		ID I `json:"id"`
 	}{ID: id}
-	RespondJSON(w, http.StatusOK, response)
+	RespondJSON(w, status, response)
 }

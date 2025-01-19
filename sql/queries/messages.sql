@@ -1,6 +1,16 @@
 -- name: GetAllMessages :many
 SELECT * FROM messages;
 
+-- name: GetMessage :one
+SELECT * FROM messages
+WHERE id = $1;
+
+-- name: MessageExists :one
+SELECT EXISTS (
+    SELECT TRUE FROM messages
+    WHERE id = $1 LIMIT 1
+);
+
 -- name: InsertMessage :one
 INSERT INTO messages(
     id,
@@ -16,10 +26,6 @@ INSERT INTO messages(
     $5
 )
 RETURNING id;
-
--- name: GetMessage :one
-SELECT * FROM messages
-WHERE id = $1;
 
 -- name: DeleteMessage :one
 DELETE FROM messages

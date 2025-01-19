@@ -1,6 +1,16 @@
 -- name: GetAllChats :many
 SELECT * FROM chats;
 
+-- name: GetChat :one
+SELECT * FROM chats
+WHERE id = $1;
+
+-- name: ChatExists :one
+SELECT EXISTS (
+    SELECT TRUE FROM chats
+    WHERE id = $1 LIMIT 1
+);
+
 -- name: InsertChat :one
 INSERT INTO chats(
     id,
@@ -12,10 +22,6 @@ INSERT INTO chats(
     $3
 )
 RETURNING id;
-
--- name: GetChat :one
-SELECT * FROM chats
-WHERE id = $1;
 
 -- name: DeleteChat :one
 DELETE FROM chats

@@ -110,3 +110,17 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (p
 	err := row.Scan(&id)
 	return id, err
 }
+
+const messageExists = `-- name: MessageExists :one
+SELECT EXISTS (
+    SELECT TRUE FROM messages
+    WHERE id = $1 LIMIT 1
+)
+`
+
+func (q *Queries) MessageExists(ctx context.Context, id pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, messageExists, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}

@@ -11,6 +11,20 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const chatExists = `-- name: ChatExists :one
+SELECT EXISTS (
+    SELECT TRUE FROM chats
+    WHERE id = $1 LIMIT 1
+)
+`
+
+func (q *Queries) ChatExists(ctx context.Context, id pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, chatExists, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const deleteChat = `-- name: DeleteChat :one
 DELETE FROM chats
 WHERE id = $1

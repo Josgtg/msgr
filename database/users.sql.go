@@ -104,3 +104,31 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (pgtype.
 	err := row.Scan(&id)
 	return id, err
 }
+
+const isUsedEmail = `-- name: IsUsedEmail :one
+SELECT EXISTS (
+    SELECT TRUE FROM users
+    WHERE email = $1 LIMIT 1
+)
+`
+
+func (q *Queries) IsUsedEmail(ctx context.Context, email string) (bool, error) {
+	row := q.db.QueryRow(ctx, isUsedEmail, email)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const userExists = `-- name: UserExists :one
+SELECT EXISTS (
+    SELECT TRUE FROM users
+    WHERE id = $1 LIMIT 1
+)
+`
+
+func (q *Queries) UserExists(ctx context.Context, id pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, userExists, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}

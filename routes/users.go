@@ -14,6 +14,7 @@ func UserRouter() chi.Router {
 
 	router.Get("/{id}", controller.GetUser)
 	router.Post("/", controller.InsertUser)
+	router.Delete("/{id}", controller.DeleteUser)
 
 	return router
 }

@@ -2,8 +2,12 @@ package main
 
 import (
 	"log"
+	"msgr/controller"
 	"msgr/database"
+	"net/http"
 	"os"
+
+	"msgr/routes"
 
 	"github.com/joho/godotenv"
 )
@@ -29,5 +33,11 @@ func main() {
 	}
 	defer conn.Close(ctx)
 
-	_ = database.New(conn)
+	queries := database.New(conn)
+
+	controller.Initialize(ctx, queries)
+
+	router := routes.CreateRouter()
+
+	http.ListenAndServe(":"+port, router)
 }

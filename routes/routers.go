@@ -8,7 +8,20 @@ import (
 
 func CreateRouter() chi.Router {
 	router := chi.NewRouter()
+
 	router.Get("/health", controller.Health)
+
+	router.Mount("/api", apiRouter())
+
+	return router
+}
+
+func apiRouter() chi.Router {
+	router := chi.NewRouter()
+
+	router.NotFound(controller.NotFound)
+	router.MethodNotAllowed(controller.MethodNotAllowed)
+
 	router.Mount("/users", UserRouter())
 
 	return router

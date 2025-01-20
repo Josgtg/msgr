@@ -9,6 +9,12 @@ import (
 )
 
 func RespondJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Add("Content-Type", "application/json")
+	w.Header().Add("Access-Control-Allow-Origin", frontendUrl)
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Add("Access-Control-Allow-Headers", "*")
+	w.Header().Add("Access-Control-Allow-Credentials", "true")
+
 	rndr.JSON(w, status, v)
 }
 

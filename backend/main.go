@@ -27,6 +27,11 @@ func main() {
 		log.Fatal("variable DB_URL was not found in .env file")
 	}
 
+	var frontendUrl string = os.Getenv("FRONTEND_URL")
+	if frontendUrl == "" {
+		log.Fatal("variable DB_URL was not found in .env file")
+	}
+
 	ctx, conn, err := database.GetConnection(dbUrl)
 	if err != nil {
 		log.Fatal("failed to connect to db, check if url provided is valid")
@@ -35,9 +40,10 @@ func main() {
 
 	queries := database.New(conn)
 
-	controller.Initialize(ctx, queries)
+	controller.Initialize(frontendUrl, ctx, queries)
 
 	router := routes.CreateRouter()
 
+	log.Println("started server at port " + port)
 	http.ListenAndServe(":"+port, router)
 }

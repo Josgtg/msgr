@@ -1,7 +1,8 @@
 package controller
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 	"msgr/models"
 	"net/http"
 
@@ -13,7 +14,7 @@ func userExists(w http.ResponseWriter, id pgtype.UUID) (bool, error) {
 	exists, err := queries.UserExists(ctx, id)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "there was an error when trying to check if user existed")
-		log.Printf("there was an error when trying to check if user existed: %s", err.Error())
+		slog.Debug(fmt.Sprintf("there was an error when trying to check if user existed: %s", err.Error()))
 		return false, err
 	}
 	return exists, err
@@ -23,7 +24,7 @@ func isEmailUsed(w http.ResponseWriter, email string) (bool, error) {
 	used, err := queries.IsUsedEmail(ctx, email)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "there was an error checking for email availability")
-		log.Printf("there was an error checking for email availability: %s", err.Error())
+		slog.Debug(fmt.Sprintf("there was an error checking for email availability: %s", err.Error()))
 		return false, err
 	}
 	return used, err
@@ -35,7 +36,7 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	pgusers, err := queries.GetAllUsers(ctx)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "could not get users, please try again later")
-		log.Printf("there was an error when getting users: %s", err.Error())
+		slog.Debug("there was an error when getting users: %s", err.Error(), "")
 		return
 	}
 
@@ -89,7 +90,7 @@ func InsertUser(w http.ResponseWriter, r *http.Request) {
 	pgid, err := queries.InsertUser(ctx, models.InsertUserParamsToSqlc(params))
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not save user, please try again later")
-		log.Printf("could not save user: %v\nError: %s\n", params, err)
+		slog.Debug(fmt.Sprintf("could not save user: %v\nError: %s\n", params, err))
 		return
 	}
 	RespondID(w, http.StatusCreated, pgid)
@@ -113,7 +114,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	deleted, err := queries.DeleteUser(ctx, pgid)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "user was not deleted, please try again later")
-		log.Printf("could not delete user: %s", err.Error())
+		slog.Debug(fmt.Sprintf("could not delete user: %s", err.Error()))
 		return
 	}
 

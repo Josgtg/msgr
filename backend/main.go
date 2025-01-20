@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"log/slog"
 	"msgr/controller"
 	"msgr/database"
 	"net/http"
@@ -44,6 +45,6 @@ func main() {
 
 	router := routes.CreateRouter()
 
-	log.Println("started server at port " + port)
+	slog.Info("started server at port " + port)
 	http.ListenAndServe(":"+port, router)
 }

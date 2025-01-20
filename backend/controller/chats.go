@@ -1,7 +1,8 @@
 package controller
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 	"msgr/models"
 	"net/http"
 
@@ -13,7 +14,7 @@ func chatExists(w http.ResponseWriter, id pgtype.UUID) (bool, error) {
 	exists, err := queries.ChatExists(ctx, id)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "there was an error when trying to check if chat existed, please try again later")
-		log.Printf("there was an error when trying to check if chat existed: %s", err.Error())
+		slog.Debug(fmt.Sprintf("there was an error when trying to check if chat existed: %s", err.Error()))
 	}
 	return exists, err
 }
@@ -24,7 +25,7 @@ func GetAllChats(w http.ResponseWriter, r *http.Request) {
 	pgchats, err := queries.GetAllChats(ctx)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "could not get chats, please try again later")
-		log.Printf("there was an error when getting chats: %s", err.Error())
+		slog.Debug(fmt.Sprintf("there was an error when getting chats: %s", err.Error()))
 		return
 	}
 
@@ -71,7 +72,7 @@ func InsertChat(w http.ResponseWriter, r *http.Request) {
 	pgid, err := queries.InsertChat(ctx, models.InsertChatParamsToSqlc(params))
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not save chat, please try again later")
-		log.Printf("could not save %v: %s", params, err.Error())
+		slog.Debug(fmt.Sprintf("could not save %v: %s", params, err.Error()))
 		return
 	}
 	RespondID(w, http.StatusCreated, pgid)
@@ -95,7 +96,7 @@ func DeleteChat(w http.ResponseWriter, r *http.Request) {
 	deleted, err := queries.DeleteChat(ctx, pgid)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "chat was not deleted, please try again later")
-		log.Printf("could not delete chat: %s", err.Error())
+		slog.Debug(fmt.Sprintf("could not delete chat: %s", err.Error()))
 		return
 	}
 

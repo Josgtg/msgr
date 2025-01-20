@@ -1,7 +1,8 @@
 package controller
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 	"msgr/models"
 	"net/http"
 
@@ -13,7 +14,7 @@ func messageExists(w http.ResponseWriter, id pgtype.UUID) (bool, error) {
 	exists, err := queries.MessageExists(ctx, id)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "there was an error when trying to check if message existed, please try again later")
-		log.Printf("there was an error when trying to check if message existed: %s", err.Error())
+		slog.Debug(fmt.Sprintf("there was an error when trying to check if message existed: %s", err.Error()))
 	}
 	return exists, err
 }
@@ -24,7 +25,7 @@ func GetAllMessages(w http.ResponseWriter, r *http.Request) {
 	pgmessages, err := queries.GetAllMessages(ctx)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "could not get messages, please try again later")
-		log.Printf("there was an error when getting messages: %s", err.Error())
+		slog.Debug(fmt.Sprintf("there was an error when getting messages: %s", err.Error()))
 		return
 	}
 
@@ -71,7 +72,7 @@ func InsertMessage(w http.ResponseWriter, r *http.Request) {
 	pgid, err := queries.InsertMessage(ctx, models.InsertMessageParamsToSqlc(params))
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not save message, please try again later")
-		log.Printf("could not save %v: %s", params, err.Error())
+		slog.Debug(fmt.Sprintf("could not save %v: %s", params, err.Error()))
 		return
 	}
 	RespondID(w, http.StatusCreated, pgid)
@@ -95,7 +96,7 @@ func DeleteMessage(w http.ResponseWriter, r *http.Request) {
 	deleted, err := queries.DeleteMessage(ctx, pgid)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "message was not deleted, please try again later")
-		log.Printf("could not delete message: %s", err.Error())
+		slog.Debug(fmt.Sprintf("could not delete message: %s", err.Error()))
 		return
 	}
 

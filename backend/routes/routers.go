@@ -10,7 +10,7 @@ import (
 )
 
 func CreateRouter() chi.Router {
-	logger := httplog.NewLogger("httplog-example", httplog.Options{
+	logger := httplog.NewLogger("server-logger", httplog.Options{
 		Concise:          true,
 		LogLevel:         slog.LevelDebug,
 		MessageFieldName: "message",

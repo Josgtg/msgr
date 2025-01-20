@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func UserRouter() chi.Router {
+func userRouter() chi.Router {
 	router := chi.NewRouter()
 
 	// FIXME: Must pass through a middleware to check admin

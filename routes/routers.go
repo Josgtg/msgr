@@ -22,7 +22,9 @@ func apiRouter() chi.Router {
 	router.NotFound(controller.NotFound)
 	router.MethodNotAllowed(controller.MethodNotAllowed)
 
-	router.Mount("/users", UserRouter())
+	router.Mount("/users", userRouter())
+	router.Mount("/chats", chatRouter())
+	router.Mount("/messages", messageRouter())
 
 	return router
 }

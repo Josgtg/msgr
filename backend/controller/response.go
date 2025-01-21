@@ -20,9 +20,9 @@ func RespondJSON(w http.ResponseWriter, status int, v any) {
 
 func RespondError(w http.ResponseWriter, status int, message string) {
 	response := struct {
-		Error   string `json:"error"`
+		Title   string `json:"title"`
 		Message string `json:"message"`
-	}{Error: errors.GetTitle(status), Message: message}
+	}{Title: errors.GetTitle(status), Message: message}
 	RespondJSON(w, status, response)
 }
 

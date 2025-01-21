@@ -1,0 +1,1 @@
+<link rel="stylesheet", href="%sveltekit.assets%/bootstrap.min.css">

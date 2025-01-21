@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"log/slog"
+	"msgr/database"
 	"msgr/models"
 	"net/http"
 
@@ -48,7 +49,7 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUser(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(w, r)
+	id, err := getUrlID(w, r)
 	if err != nil {
 		return
 	}
@@ -73,21 +74,34 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 func InsertUser(w http.ResponseWriter, r *http.Request) {
 	// Must validate params on frontend before they get here
 
-	params := models.InsertUserParams{}
-	if err := DecodeJSON(w, r, &params); err != nil {
+	id := uuid.New()
+	name := getUrlQueryParam(w, r, "name")
+	if name == "" {
 		return
 	}
-
-	if used, err := isEmailUsed(w, params.Email); err != nil {
+	password := getUrlQueryParam(w, r, "password")
+	if password == "" {
+		return
+	}
+	email := getUrlQueryParam(w, r, "email")
+	if email == "" {
+		return
+	}
+	if used, err := isEmailUsed(w, email); err != nil {
 		return
 	} else if used {
 		RespondError(w, http.StatusBadRequest, "email provided is already in use")
 		return
 	}
 
-	params.ID = uuid.New()
+	params := database.InsertUserParams{
+		ID:       models.ToPgtypeUUID(id),
+		Name:     name,
+		Password: password,
+		Email:    email,
+	}
 
-	pgid, err := queries.InsertUser(ctx, models.InsertUserParamsToSqlc(params))
+	pgid, err := queries.InsertUser(ctx, params)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not save user, please try again later")
 		slog.Debug(fmt.Sprintf("could not save user: %v\nError: %s\n", params, err))
@@ -97,7 +111,7 @@ func InsertUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(w, r)
+	id, err := getUrlID(w, r)
 	if err != nil {
 		return
 	}

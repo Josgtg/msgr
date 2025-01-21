@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"log/slog"
+	"msgr/database"
 	"msgr/models"
 	"net/http"
 
@@ -37,7 +38,7 @@ func GetAllChats(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetChat(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(w, r)
+	id, err := getUrlID(w, r)
 	if err != nil {
 		return
 	}
@@ -62,14 +63,25 @@ func GetChat(w http.ResponseWriter, r *http.Request) {
 func InsertChat(w http.ResponseWriter, r *http.Request) {
 	// Must validate params on frontend before they get here
 
-	params := models.InsertChatParams{}
-	if err := DecodeJSON(w, r, &params); err != nil {
+	id := uuid.New()
+
+	firstUser, err := getUrlQueryID(w, r, "first")
+	if err != nil {
 		return
 	}
 
-	params.ID = uuid.New()
+	secondUser, err := getUrlQueryID(w, r, "second")
+	if err != nil {
+		return
+	}
 
-	pgid, err := queries.InsertChat(ctx, models.InsertChatParamsToSqlc(params))
+	params := database.InsertChatParams{
+		ID:         models.ToPgtypeUUID(id),
+		FirstUser:  models.ToPgtypeUUID(firstUser),
+		SecondUser: models.ToPgtypeUUID(secondUser),
+	}
+
+	pgid, err := queries.InsertChat(ctx, params)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not save chat, please try again later")
 		slog.Debug(fmt.Sprintf("could not save %v: %s", params, err.Error()))
@@ -79,7 +91,7 @@ func InsertChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteChat(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(w, r)
+	id, err := getUrlID(w, r)
 	if err != nil {
 		return
 	}

@@ -8,47 +8,28 @@ import (
 	"github.com/google/uuid"
 )
 
-type InsertChatParams struct {
-	ID         uuid.UUID `json:"id"`
-	FirstUser  uuid.UUID `json:"first_user"`
-	SecondUser uuid.UUID `json:"second_user"`
-}
-
-type InsertMessageParams struct {
-	ID       uuid.UUID `json:"id"`
-	Chat     uuid.UUID `json:"chat"`
-	Sender   uuid.UUID `json:"sender"`
-	Receiver uuid.UUID `json:"receiver"`
-	Message  string    `json:"message"`
-}
-
-type InsertUserParams struct {
-	ID       uuid.UUID `json:"id"`
-	Name     string    `json:"name"`
-	Password string    `json:"password"`
-	Email    string    `json:"email"`
-}
-
 type Chat struct {
-	ID         uuid.UUID `json:"id"`
-	FirstUser  uuid.UUID `json:"first_user"`
+	ID uuid.UUID `json:"id"`
+	FirstUser uuid.UUID `json:"first_user"`
 	SecondUser uuid.UUID `json:"second_user"`
-	CreatedAt  time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Message struct {
-	ID       uuid.UUID `json:"id"`
-	Chat     uuid.UUID `json:"chat"`
-	Sender   uuid.UUID `json:"sender"`
+	ID uuid.UUID `json:"id"`
+	Chat uuid.UUID `json:"chat"`
+	Sender uuid.UUID `json:"sender"`
 	Receiver uuid.UUID `json:"receiver"`
-	Message  string    `json:"message"`
-	SentAt   time.Time `json:"sent_at"`
+	Message string `json:"message"`
+	SentAt time.Time `json:"sent_at"`
 }
 
 type User struct {
-	ID           uuid.UUID `json:"id"`
-	Name         string    `json:"name"`
-	Password     string    `json:"password"`
-	Email        string    `json:"email"`
+	ID uuid.UUID `json:"id"`
+	Name string `json:"name"`
+	Password string `json:"password"`
+	Email string `json:"email"`
 	RegisteredAt time.Time `json:"registered_at"`
 }
+
+

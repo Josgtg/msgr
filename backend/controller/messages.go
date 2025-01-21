@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"msgr/database"
 	"msgr/models"
 	"net/http"
 
@@ -37,7 +39,7 @@ func GetAllMessages(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetMessage(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(w, r)
+	id, err := getUrlID(w, r)
 	if err != nil {
 		return
 	}
@@ -62,14 +64,40 @@ func GetMessage(w http.ResponseWriter, r *http.Request) {
 func InsertMessage(w http.ResponseWriter, r *http.Request) {
 	// Must validate params on frontend before they get here
 
-	params := models.InsertMessageParams{}
-	if err := DecodeJSON(w, r, &params); err != nil {
+	id := uuid.New()
+
+	chat, err := getUrlQueryID(w, r, "chat")
+	if err != nil {
 		return
 	}
 
-	params.ID = uuid.New()
+	sender, err := getUrlQueryID(w, r, "sender")
+	if err != nil {
+		return
+	}
 
-	pgid, err := queries.InsertMessage(ctx, models.InsertMessageParamsToSqlc(params))
+	receiver, err := getUrlQueryID(w, r, "receiver")
+	if err != nil {
+		return
+	}
+
+	messageStruct := struct {
+		Message string `json:"message"`
+	}{}
+	err = json.NewDecoder(r.Body).Decode(&messageStruct)
+	if err != nil {
+		return
+	}
+
+	params := database.InsertMessageParams{
+		ID:       models.ToPgtypeUUID(id),
+		Chat:     models.ToPgtypeUUID(chat),
+		Sender:   models.ToPgtypeUUID(sender),
+		Receiver: models.ToPgtypeUUID(receiver),
+		Message:  messageStruct.Message,
+	}
+
+	pgid, err := queries.InsertMessage(ctx, params)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not save message, please try again later")
 		slog.Debug(fmt.Sprintf("could not save %v: %s", params, err.Error()))
@@ -79,7 +107,7 @@ func InsertMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteMessage(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(w, r)
+	id, err := getUrlID(w, r)
 	if err != nil {
 		return
 	}

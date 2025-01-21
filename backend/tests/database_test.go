@@ -36,7 +36,7 @@ func TestQueries(t *testing.T) {
 		test.Fatalf(err.Error())
 	}
 	ctx = cotx
-	defer conn.Close(ctx)
+	defer conn.Close()
 
 	queries = database.New(conn)
 

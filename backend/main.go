@@ -14,6 +14,8 @@ import (
 )
 
 func main() {
+	slog.SetLogLoggerLevel(slog.LevelDebug)
+
 	if err := godotenv.Load(); err != nil {
 		log.Fatal(".env file was not found!")
 	}
@@ -37,7 +39,7 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to connect to db, check if url provided is valid")
 	}
-	defer conn.Close(ctx)
+	defer conn.Close()
 
 	queries := database.New(conn)
 

@@ -61,6 +61,28 @@ func GetMessage(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, models.MessageFromSqlc(message))
 }
 
+func GetMessagesByChat(w http.ResponseWriter, r *http.Request) {
+	id, err := getUrlID(w, r)
+	if err != nil {
+		return
+	}
+
+	pgid := models.ToPgtypeUUID(id)
+
+	pgmessages, err := queries.GetMessagesByChat(ctx, pgid)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "could not get messages, please try again later")
+		slog.Debug(fmt.Sprintf("could not save %s", err.Error()))
+		return
+	}
+
+	messages := make([]models.Message, len(pgmessages))
+	for i, message := range pgmessages {
+		messages[i] = models.MessageFromSqlc(message)
+	}
+	RespondJSON(w, http.StatusOK, messages)
+}
+
 func InsertMessage(w http.ResponseWriter, r *http.Request) {
 	// Must validate params on frontend before they get here
 

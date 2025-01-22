@@ -83,6 +83,36 @@ func (q *Queries) GetChat(ctx context.Context, id pgtype.UUID) (Chat, error) {
 	return i, err
 }
 
+const getChatsByUsers = `-- name: GetChatsByUsers :many
+SELECT id, first_user, second_user, created_at FROM chats
+WHERE first_user = $1 OR second_user = $1
+`
+
+func (q *Queries) GetChatsByUsers(ctx context.Context, firstUser pgtype.UUID) ([]Chat, error) {
+	rows, err := q.db.Query(ctx, getChatsByUsers, firstUser)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Chat
+	for rows.Next() {
+		var i Chat
+		if err := rows.Scan(
+			&i.ID,
+			&i.FirstUser,
+			&i.SecondUser,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertChat = `-- name: InsertChat :one
 INSERT INTO chats(
     id,

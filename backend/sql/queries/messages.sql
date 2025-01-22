@@ -5,6 +5,10 @@ SELECT * FROM messages;
 SELECT * FROM messages
 WHERE id = $1;
 
+-- name: GetMessagesByChat :many
+SELECT * FROM messages
+WHERE chat = $1;
+
 -- name: MessageExists :one
 SELECT EXISTS (
     SELECT TRUE FROM messages

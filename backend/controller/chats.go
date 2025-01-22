@@ -37,6 +37,28 @@ func GetAllChats(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, chats)
 }
 
+func GetUserChats(w http.ResponseWriter, r *http.Request) {
+	id, err := getUrlID(w, r)
+	if err != nil {
+		return
+	}
+
+	pgid := models.ToPgtypeUUID(id)
+
+	pgchats, err := queries.GetChatsByUsers(ctx, pgid)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "could not get chats, please try again later")
+		slog.Debug(fmt.Sprintf("could not get chats: %s", err.Error()))
+		return
+	}
+
+	chats := make([]models.Chat, len(pgchats))
+	for i, chat := range pgchats {
+		chats[i] = models.ChatFromSqlc(chat)
+	}
+	RespondJSON(w, http.StatusOK, chats)
+}
+
 func GetChat(w http.ResponseWriter, r *http.Request) {
 	id, err := getUrlID(w, r)
 	if err != nil {
@@ -55,6 +77,7 @@ func GetChat(w http.ResponseWriter, r *http.Request) {
 	chat, err := queries.GetChat(ctx, pgid)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not get chat, please try again later")
+		slog.Debug(fmt.Sprintf("could not get chats: %s", err.Error()))
 		return
 	}
 	RespondJSON(w, http.StatusOK, models.ChatFromSqlc(chat))

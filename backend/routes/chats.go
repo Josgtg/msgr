@@ -16,5 +16,7 @@ func chatRouter() chi.Router {
 	router.Post("/", controller.InsertChat)
 	router.Delete("/{id}", controller.DeleteChat)
 
+	router.Get("/user/{id}", controller.GetUserChats)
+
 	return router
 }

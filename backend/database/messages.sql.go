@@ -73,6 +73,38 @@ func (q *Queries) GetMessage(ctx context.Context, id pgtype.UUID) (Message, erro
 	return i, err
 }
 
+const getMessagesByChat = `-- name: GetMessagesByChat :many
+SELECT id, chat, sender, receiver, message, sent_at FROM messages
+WHERE chat = $1
+`
+
+func (q *Queries) GetMessagesByChat(ctx context.Context, chat pgtype.UUID) ([]Message, error) {
+	rows, err := q.db.Query(ctx, getMessagesByChat, chat)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Message
+	for rows.Next() {
+		var i Message
+		if err := rows.Scan(
+			&i.ID,
+			&i.Chat,
+			&i.Sender,
+			&i.Receiver,
+			&i.Message,
+			&i.SentAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertMessage = `-- name: InsertMessage :one
 INSERT INTO messages(
     id,

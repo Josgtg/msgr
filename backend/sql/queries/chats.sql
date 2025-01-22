@@ -5,6 +5,10 @@ SELECT * FROM chats;
 SELECT * FROM chats
 WHERE id = $1;
 
+-- name: GetChatsByUsers :many
+SELECT * FROM chats
+WHERE first_user = $1 OR second_user = $1;
+
 -- name: ChatExists :one
 SELECT EXISTS (
     SELECT TRUE FROM chats

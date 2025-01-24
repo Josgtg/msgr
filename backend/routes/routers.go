@@ -39,6 +39,7 @@ func apiRouter() chi.Router {
 	router := chi.NewRouter()
 
 	router.Get("/health", controller.Health)
+	router.Post("/login", controller.LogIn)
 
 	router.NotFound(controller.NotFound)
 	router.MethodNotAllowed(controller.MethodNotAllowed)

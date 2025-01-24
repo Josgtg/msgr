@@ -88,6 +88,7 @@ func InsertChat(w http.ResponseWriter, r *http.Request) {
 
 	id := uuid.New()
 
+	// FIXME: Must check if users exist
 	firstUser, err := getUrlQueryID(w, r, "first")
 	if err != nil {
 		return

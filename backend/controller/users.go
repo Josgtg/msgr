@@ -71,6 +71,43 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, models.UserFromSqlc(user))
 }
 
+func LogIn(w http.ResponseWriter, r *http.Request) {
+	email := getUrlQueryParam(w, r, "email")
+	if email == "" {
+		return
+	}
+	password := getUrlQueryParam(w, r, "password")
+	if password == "" {
+		return
+	}
+
+	exists, err := isEmailUsed(w, email)
+	if err != nil {
+		return
+	}
+
+	slog.Info(email)
+	slog.Info(password)
+
+	if !exists {
+		RespondError(w, http.StatusBadRequest, "user does not exist")
+		return
+	}
+
+	user, err := queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "could not get user by email, please try again later")
+		slog.Debug(fmt.Sprintf("error when trying to get user from database: %s", err.Error()))
+		return
+	}
+
+	if user.Password == password {
+		RespondJSON(w, http.StatusOK, models.UserFromSqlc(user))
+	} else {
+		RespondError(w, http.StatusBadRequest, "incorrect password")
+	}
+}
+
 func InsertUser(w http.ResponseWriter, r *http.Request) {
 	// Must validate params on frontend before they get here
 

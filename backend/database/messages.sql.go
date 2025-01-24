@@ -119,18 +119,18 @@ INSERT INTO messages(
     $4,
     $5
 )
-RETURNING id
+RETURNING id, chat, sender, receiver, message, sent_at
 `
 
 type InsertMessageParams struct {
-	ID       pgtype.UUID
-	Chat     pgtype.UUID
-	Sender   pgtype.UUID
-	Receiver pgtype.UUID
-	Message  string
+	ID       pgtype.UUID `json:"id"`
+	Chat     pgtype.UUID `json:"chat"`
+	Sender   pgtype.UUID `json:"sender"`
+	Receiver pgtype.UUID `json:"receiver"`
+	Message  string `json:"message"`
 }
 
-func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (pgtype.UUID, error) {
+func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (Message, error) {
 	row := q.db.QueryRow(ctx, insertMessage,
 		arg.ID,
 		arg.Chat,
@@ -138,9 +138,16 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (p
 		arg.Receiver,
 		arg.Message,
 	)
-	var id pgtype.UUID
-	err := row.Scan(&id)
-	return id, err
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.Chat,
+		&i.Sender,
+		&i.Receiver,
+		&i.Message,
+		&i.SentAt,
+	)
+	return i, err
 }
 
 const messageExists = `-- name: MessageExists :one

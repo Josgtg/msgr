@@ -9,25 +9,25 @@ import (
 )
 
 type Chat struct {
-	ID         pgtype.UUID
-	FirstUser  pgtype.UUID
-	SecondUser pgtype.UUID
-	CreatedAt  pgtype.Timestamp
+	ID         pgtype.UUID `json:"id"`
+	FirstUser  pgtype.UUID `json:"first_user"`
+	SecondUser pgtype.UUID `json:"second_user"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
 }
 
 type Message struct {
-	ID       pgtype.UUID
-	Chat     pgtype.UUID
-	Sender   pgtype.UUID
-	Receiver pgtype.UUID
-	Message  string
-	SentAt   pgtype.Timestamp
+	ID       pgtype.UUID `json:"id"`
+	Chat     pgtype.UUID `json:"chat"`
+	Sender   pgtype.UUID `json:"sender"`
+	Receiver pgtype.UUID `json:"receiver"`
+	Message  string `json:"message"`
+	SentAt   pgtype.Timestamp `json:"sent_at"`
 }
 
 type User struct {
-	ID           pgtype.UUID
-	Name         string
-	Password     string
-	Email        string
-	RegisteredAt pgtype.Timestamp
+	ID           pgtype.UUID `json:"id"`
+	Name         string `json:"name"`
+	Password     string `json:"password"`
+	Email        string `json:"email"`
+	RegisteredAt pgtype.Timestamp `json:"registered_at"`
 }

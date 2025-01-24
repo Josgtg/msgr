@@ -24,22 +24,28 @@ func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) (pgtype.UUID, 
 }
 
 const getAllUsers = `-- name: GetAllUsers :many
-SELECT id, name, password, email, registered_at FROM users
+SELECT id, name, email, registered_at FROM users
 `
 
-func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
+type GetAllUsersRow struct {
+	ID           pgtype.UUID `json:"id"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	RegisteredAt pgtype.Timestamp `json:"registered_at"`
+}
+
+func (q *Queries) GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error) {
 	rows, err := q.db.Query(ctx, getAllUsers)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []User
+	var items []GetAllUsersRow
 	for rows.Next() {
-		var i User
+		var i GetAllUsersRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.Password,
 			&i.Email,
 			&i.RegisteredAt,
 		); err != nil {
@@ -54,35 +60,23 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, name, password, email, registered_at FROM users
+SELECT id, name, email, registered_at FROM users
 WHERE id = $1
 `
 
-func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
-	row := q.db.QueryRow(ctx, getUser, id)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Password,
-		&i.Email,
-		&i.RegisteredAt,
-	)
-	return i, err
+type GetUserRow struct {
+	ID           pgtype.UUID `json:"id"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	RegisteredAt pgtype.Timestamp `json:"registered_at"`
 }
 
-const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name, password, email, registered_at FROM users
-WHERE email = $1 LIMIT 1
-`
-
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByEmail, email)
-	var i User
+func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (GetUserRow, error) {
+	row := q.db.QueryRow(ctx, getUser, id)
+	var i GetUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Password,
 		&i.Email,
 		&i.RegisteredAt,
 	)
@@ -101,26 +95,26 @@ INSERT INTO users(
     $3,
     $4
 )
-RETURNING id
+RETURNING (id, name, email, registered_at)
 `
 
 type InsertUserParams struct {
-	ID       pgtype.UUID
-	Name     string
-	Password string
-	Email    string
+	ID       pgtype.UUID `json:"id"`
+	Name     string `json:"name"`
+	Password string `json:"password"`
+	Email    string `json:"email"`
 }
 
-func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (pgtype.UUID, error) {
+func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (interface{}, error) {
 	row := q.db.QueryRow(ctx, insertUser,
 		arg.ID,
 		arg.Name,
 		arg.Password,
 		arg.Email,
 	)
-	var id pgtype.UUID
-	err := row.Scan(&id)
-	return id, err
+	var column_1 interface{}
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const isUsedEmail = `-- name: IsUsedEmail :one
@@ -135,6 +129,35 @@ func (q *Queries) IsUsedEmail(ctx context.Context, email string) (bool, error) {
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const login = `-- name: Login :one
+SELECT id, name, email, registered_at FROM users
+WHERE email = $1 AND password = $2 LIMIT 1
+`
+
+type LoginParams struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginRow struct {
+	ID           pgtype.UUID `json:"id"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	RegisteredAt pgtype.Timestamp `json:"registered_at"`
+}
+
+func (q *Queries) Login(ctx context.Context, arg LoginParams) (LoginRow, error) {
+	row := q.db.QueryRow(ctx, login, arg.Email, arg.Password)
+	var i LoginRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.RegisteredAt,
+	)
+	return i, err
 }
 
 const userExists = `-- name: UserExists :one

@@ -34,17 +34,13 @@ func isEmailUsed(w http.ResponseWriter, email string) (bool, error) {
 // Methods
 
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	pgusers, err := queries.GetAllUsers(ctx)
+	users, err := queries.GetAllUsers(ctx)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "could not get users, please try again later")
 		slog.Debug("there was an error when getting users: %s", err.Error(), "")
 		return
 	}
 
-	users := make([]models.User, len(pgusers))
-	for i, user := range pgusers {
-		users[i] = models.UserFromSqlc(user)
-	}
 	RespondJSON(w, http.StatusOK, users)
 }
 
@@ -68,83 +64,56 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, http.StatusInternalServerError, "could not get user, please try again later")
 		return
 	}
-	RespondJSON(w, http.StatusOK, models.UserFromSqlc(user))
+
+	RespondJSON(w, http.StatusOK, user)
 }
 
 func LogIn(w http.ResponseWriter, r *http.Request) {
-	email := getUrlQueryParam(w, r, "email")
-	if email == "" {
-		return
-	}
-	password := getUrlQueryParam(w, r, "password")
-	if password == "" {
-		return
-	}
+	params := database.LoginParams{}
 
-	exists, err := isEmailUsed(w, email)
-	if err != nil {
+	if exists, err := isEmailUsed(w, params.Email); err != nil {
 		return
-	}
-
-	slog.Info(email)
-	slog.Info(password)
-
-	if !exists {
+	} else if !exists {
 		RespondError(w, http.StatusBadRequest, "user does not exist")
 		return
 	}
 
-	user, err := queries.GetUserByEmail(ctx, email)
+	user, err := queries.Login(ctx, params)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "could not get user by email, please try again later")
-		slog.Debug(fmt.Sprintf("error when trying to get user from database: %s", err.Error()))
+		RespondError(w, http.StatusInternalServerError, "there was an error when checking credentials")
+		slog.Debug(fmt.Sprintf("there was an error when checking credentials: %s", err.Error()))
 		return
 	}
 
-	if user.Password == password {
-		RespondJSON(w, http.StatusOK, models.UserFromSqlc(user))
-	} else {
-		RespondError(w, http.StatusBadRequest, "incorrect password")
-	}
+	RespondJSON(w, http.StatusOK, user)
 }
 
 func InsertUser(w http.ResponseWriter, r *http.Request) {
 	// Must validate params on frontend before they get here
 
-	id := uuid.New()
-	name := getUrlQueryParam(w, r, "name")
-	if name == "" {
+	params := database.InsertUserParams{
+		ID: models.ToPgtypeUUID(uuid.New()),
+	}
+
+	if err := decodeJSON(w, r, &params); err != nil {
 		return
 	}
-	password := getUrlQueryParam(w, r, "password")
-	if password == "" {
-		return
-	}
-	email := getUrlQueryParam(w, r, "email")
-	if email == "" {
-		return
-	}
-	if used, err := isEmailUsed(w, email); err != nil {
+
+	if used, err := isEmailUsed(w, params.Email); err != nil {
 		return
 	} else if used {
 		RespondError(w, http.StatusBadRequest, "email provided is already in use")
 		return
 	}
 
-	params := database.InsertUserParams{
-		ID:       models.ToPgtypeUUID(id),
-		Name:     name,
-		Password: password,
-		Email:    email,
-	}
-
-	pgid, err := queries.InsertUser(ctx, params)
+	user, err := queries.InsertUser(ctx, params)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not save user, please try again later")
 		slog.Debug(fmt.Sprintf("could not save user: %v\nError: %s\n", params, err))
 		return
 	}
-	RespondID(w, http.StatusCreated, pgid)
+
+	RespondJSON(w, http.StatusCreated, user)
 }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {

@@ -1,13 +1,9 @@
 -- name: GetAllUsers :many
-SELECT * FROM users;
+SELECT id, name, email, registered_at FROM users;
 
 -- name: GetUser :one
-SELECT * FROM users
+SELECT id, name, email, registered_at FROM users
 WHERE id = $1;
-
--- name: GetUserByEmail :one
-SELECT * FROM users
-WHERE email = $1 LIMIT 1;
 
 -- name: UserExists :one
 SELECT EXISTS (
@@ -21,6 +17,10 @@ SELECT EXISTS (
     WHERE email = $1 LIMIT 1
 );
 
+-- name: Login :one
+SELECT id, name, email, registered_at FROM users
+WHERE email = $1 AND password = $2 LIMIT 1;
+
 -- name: InsertUser :one
 INSERT INTO users(
     id,
@@ -33,7 +33,7 @@ INSERT INTO users(
     $3,
     $4
 )
-RETURNING id;
+RETURNING (id, name, email, registered_at);
 
 -- name: DeleteUser :one
 DELETE FROM users

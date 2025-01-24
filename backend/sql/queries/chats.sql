@@ -25,7 +25,7 @@ INSERT INTO chats(
     $2,
     $3
 )
-RETURNING id;
+RETURNING *;
 
 -- name: DeleteChat :one
 DELETE FROM chats

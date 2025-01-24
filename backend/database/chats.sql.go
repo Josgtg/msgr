@@ -123,18 +123,23 @@ INSERT INTO chats(
     $2,
     $3
 )
-RETURNING id
+RETURNING id, first_user, second_user, created_at
 `
 
 type InsertChatParams struct {
-	ID         pgtype.UUID
-	FirstUser  pgtype.UUID
-	SecondUser pgtype.UUID
+	ID         pgtype.UUID `json:"id"`
+	FirstUser  pgtype.UUID `json:"first_user"`
+	SecondUser pgtype.UUID `json:"second_user"`
 }
 
-func (q *Queries) InsertChat(ctx context.Context, arg InsertChatParams) (pgtype.UUID, error) {
+func (q *Queries) InsertChat(ctx context.Context, arg InsertChatParams) (Chat, error) {
 	row := q.db.QueryRow(ctx, insertChat, arg.ID, arg.FirstUser, arg.SecondUser)
-	var id pgtype.UUID
-	err := row.Scan(&id)
-	return id, err
+	var i Chat
+	err := row.Scan(
+		&i.ID,
+		&i.FirstUser,
+		&i.SecondUser,
+		&i.CreatedAt,
+	)
+	return i, err
 }

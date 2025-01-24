@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"msgr/database"
@@ -24,17 +23,13 @@ func messageExists(w http.ResponseWriter, id pgtype.UUID) (bool, error) {
 // Methods
 
 func GetAllMessages(w http.ResponseWriter, r *http.Request) {
-	pgmessages, err := queries.GetAllMessages(ctx)
+	messages, err := queries.GetAllMessages(ctx)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "could not get messages, please try again later")
 		slog.Debug(fmt.Sprintf("there was an error when getting messages: %s", err.Error()))
 		return
 	}
 
-	messages := make([]models.Message, len(pgmessages))
-	for i, message := range pgmessages {
-		messages[i] = models.MessageFromSqlc(message)
-	}
 	RespondJSON(w, http.StatusOK, messages)
 }
 
@@ -58,7 +53,8 @@ func GetMessage(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, http.StatusInternalServerError, "could not get message, please try again later")
 		return
 	}
-	RespondJSON(w, http.StatusOK, models.MessageFromSqlc(message))
+
+	RespondJSON(w, http.StatusOK, message)
 }
 
 func GetMessagesByChat(w http.ResponseWriter, r *http.Request) {
@@ -69,63 +65,35 @@ func GetMessagesByChat(w http.ResponseWriter, r *http.Request) {
 
 	pgid := models.ToPgtypeUUID(id)
 
-	pgmessages, err := queries.GetMessagesByChat(ctx, pgid)
+	messages, err := queries.GetMessagesByChat(ctx, pgid)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not get messages, please try again later")
 		slog.Debug(fmt.Sprintf("could not save %s", err.Error()))
 		return
 	}
 
-	messages := make([]models.Message, len(pgmessages))
-	for i, message := range pgmessages {
-		messages[i] = models.MessageFromSqlc(message)
-	}
 	RespondJSON(w, http.StatusOK, messages)
 }
 
 func InsertMessage(w http.ResponseWriter, r *http.Request) {
 	// Must validate params on frontend before they get here
 
-	id := uuid.New()
-
-	chat, err := getUrlQueryID(w, r, "chat")
-	if err != nil {
-		return
-	}
-
-	sender, err := getUrlQueryID(w, r, "sender")
-	if err != nil {
-		return
-	}
-
-	receiver, err := getUrlQueryID(w, r, "receiver")
-	if err != nil {
-		return
-	}
-
-	messageStruct := struct {
-		Message string `json:"message"`
-	}{}
-	err = json.NewDecoder(r.Body).Decode(&messageStruct)
-	if err != nil {
-		return
-	}
-
 	params := database.InsertMessageParams{
-		ID:       models.ToPgtypeUUID(id),
-		Chat:     models.ToPgtypeUUID(chat),
-		Sender:   models.ToPgtypeUUID(sender),
-		Receiver: models.ToPgtypeUUID(receiver),
-		Message:  messageStruct.Message,
+		ID: models.ToPgtypeUUID(uuid.New()),
 	}
 
-	pgid, err := queries.InsertMessage(ctx, params)
+	if err := decodeJSON(w, r, &params); err != nil {
+		return
+	}
+
+	message, err := queries.InsertMessage(ctx, params)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not save message, please try again later")
 		slog.Debug(fmt.Sprintf("could not save %v: %s", params, err.Error()))
 		return
 	}
-	RespondID(w, http.StatusCreated, pgid)
+
+	RespondJSON(w, http.StatusCreated, message)
 }
 
 func DeleteMessage(w http.ResponseWriter, r *http.Request) {

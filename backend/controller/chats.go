@@ -23,17 +23,13 @@ func chatExists(w http.ResponseWriter, id pgtype.UUID) (bool, error) {
 // Methods
 
 func GetAllChats(w http.ResponseWriter, r *http.Request) {
-	pgchats, err := queries.GetAllChats(ctx)
+	chats, err := queries.GetAllChats(ctx)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "could not get chats, please try again later")
 		slog.Debug(fmt.Sprintf("there was an error when getting chats: %s", err.Error()))
 		return
 	}
 
-	chats := make([]models.Chat, len(pgchats))
-	for i, chat := range pgchats {
-		chats[i] = models.ChatFromSqlc(chat)
-	}
 	RespondJSON(w, http.StatusOK, chats)
 }
 
@@ -45,17 +41,13 @@ func GetUserChats(w http.ResponseWriter, r *http.Request) {
 
 	pgid := models.ToPgtypeUUID(id)
 
-	pgchats, err := queries.GetChatsByUsers(ctx, pgid)
+	chats, err := queries.GetChatsByUsers(ctx, pgid)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not get chats, please try again later")
 		slog.Debug(fmt.Sprintf("could not get chats: %s", err.Error()))
 		return
 	}
 
-	chats := make([]models.Chat, len(pgchats))
-	for i, chat := range pgchats {
-		chats[i] = models.ChatFromSqlc(chat)
-	}
 	RespondJSON(w, http.StatusOK, chats)
 }
 
@@ -80,38 +72,42 @@ func GetChat(w http.ResponseWriter, r *http.Request) {
 		slog.Debug(fmt.Sprintf("could not get chats: %s", err.Error()))
 		return
 	}
-	RespondJSON(w, http.StatusOK, models.ChatFromSqlc(chat))
+
+	RespondJSON(w, http.StatusOK, chat)
 }
 
 func InsertChat(w http.ResponseWriter, r *http.Request) {
 	// Must validate params on frontend before they get here
 
-	id := uuid.New()
-
-	// FIXME: Must check if users exist
-	firstUser, err := getUrlQueryID(w, r, "first")
-	if err != nil {
-		return
-	}
-
-	secondUser, err := getUrlQueryID(w, r, "second")
-	if err != nil {
-		return
-	}
-
 	params := database.InsertChatParams{
-		ID:         models.ToPgtypeUUID(id),
-		FirstUser:  models.ToPgtypeUUID(firstUser),
-		SecondUser: models.ToPgtypeUUID(secondUser),
+		ID: models.ToPgtypeUUID(uuid.New()),
 	}
 
-	pgid, err := queries.InsertChat(ctx, params)
+	if err := decodeJSON(w, r, &params); err != nil {
+		return
+	}
+
+	if exists, err := userExists(w, params.FirstUser); err != nil {
+		return
+	} else if !exists {
+		RespondError(w, http.StatusBadRequest, "first user does not exist")
+		return
+	}
+	if exists, err := userExists(w, params.SecondUser); err != nil {
+		return
+	} else if !exists {
+		RespondError(w, http.StatusBadRequest, "second user does not exist")
+		return
+	}
+
+	chat, err := queries.InsertChat(ctx, params)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not save chat, please try again later")
 		slog.Debug(fmt.Sprintf("could not save %v: %s", params, err.Error()))
 		return
 	}
-	RespondID(w, http.StatusCreated, pgid)
+
+	RespondJSON(w, http.StatusCreated, chat)
 }
 
 func DeleteChat(w http.ResponseWriter, r *http.Request) {

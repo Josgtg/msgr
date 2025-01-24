@@ -29,7 +29,7 @@ INSERT INTO messages(
     $4,
     $5
 )
-RETURNING id;
+RETURNING *;
 
 -- name: DeleteMessage :one
 DELETE FROM messages

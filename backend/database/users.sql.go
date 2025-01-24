@@ -28,9 +28,9 @@ SELECT id, name, email, registered_at FROM users
 `
 
 type GetAllUsersRow struct {
-	ID           pgtype.UUID `json:"id"`
-	Name         string `json:"name"`
-	Email        string `json:"email"`
+	ID           pgtype.UUID      `json:"id"`
+	Name         string           `json:"name"`
+	Email        string           `json:"email"`
 	RegisteredAt pgtype.Timestamp `json:"registered_at"`
 }
 
@@ -65,9 +65,9 @@ WHERE id = $1
 `
 
 type GetUserRow struct {
-	ID           pgtype.UUID `json:"id"`
-	Name         string `json:"name"`
-	Email        string `json:"email"`
+	ID           pgtype.UUID      `json:"id"`
+	Name         string           `json:"name"`
+	Email        string           `json:"email"`
 	RegisteredAt pgtype.Timestamp `json:"registered_at"`
 }
 
@@ -100,9 +100,9 @@ RETURNING (id, name, email, registered_at)
 
 type InsertUserParams struct {
 	ID       pgtype.UUID `json:"id"`
-	Name     string `json:"name"`
-	Password string `json:"password"`
-	Email    string `json:"email"`
+	Name     string      `json:"name"`
+	Password string      `json:"password"`
+	Email    string      `json:"email"`
 }
 
 func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (interface{}, error) {
@@ -142,9 +142,9 @@ type LoginParams struct {
 }
 
 type LoginRow struct {
-	ID           pgtype.UUID `json:"id"`
-	Name         string `json:"name"`
-	Email        string `json:"email"`
+	ID           pgtype.UUID      `json:"id"`
+	Name         string           `json:"name"`
+	Email        string           `json:"email"`
 	RegisteredAt pgtype.Timestamp `json:"registered_at"`
 }
 

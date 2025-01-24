@@ -24,7 +24,7 @@ func (q *Queries) DeleteMessage(ctx context.Context, id pgtype.UUID) (pgtype.UUI
 }
 
 const getAllMessages = `-- name: GetAllMessages :many
-SELECT id, chat, sender, receiver, message, sent_at FROM messages
+SELECT id, chat, sender, message, sent_at FROM messages
 `
 
 func (q *Queries) GetAllMessages(ctx context.Context) ([]Message, error) {
@@ -40,7 +40,6 @@ func (q *Queries) GetAllMessages(ctx context.Context) ([]Message, error) {
 			&i.ID,
 			&i.Chat,
 			&i.Sender,
-			&i.Receiver,
 			&i.Message,
 			&i.SentAt,
 		); err != nil {
@@ -55,7 +54,7 @@ func (q *Queries) GetAllMessages(ctx context.Context) ([]Message, error) {
 }
 
 const getMessage = `-- name: GetMessage :one
-SELECT id, chat, sender, receiver, message, sent_at FROM messages
+SELECT id, chat, sender, message, sent_at FROM messages
 WHERE id = $1
 `
 
@@ -66,7 +65,6 @@ func (q *Queries) GetMessage(ctx context.Context, id pgtype.UUID) (Message, erro
 		&i.ID,
 		&i.Chat,
 		&i.Sender,
-		&i.Receiver,
 		&i.Message,
 		&i.SentAt,
 	)
@@ -74,7 +72,7 @@ func (q *Queries) GetMessage(ctx context.Context, id pgtype.UUID) (Message, erro
 }
 
 const getMessagesByChat = `-- name: GetMessagesByChat :many
-SELECT id, chat, sender, receiver, message, sent_at FROM messages
+SELECT id, chat, sender, message, sent_at FROM messages
 WHERE chat = $1
 `
 
@@ -91,7 +89,6 @@ func (q *Queries) GetMessagesByChat(ctx context.Context, chat pgtype.UUID) ([]Me
 			&i.ID,
 			&i.Chat,
 			&i.Sender,
-			&i.Receiver,
 			&i.Message,
 			&i.SentAt,
 		); err != nil {
@@ -110,24 +107,21 @@ INSERT INTO messages(
     id,
     chat,
     sender,
-    receiver,
     message
 ) VALUES (
     $1,
     $2,
     $3,
-    $4,
-    $5
+    $4
 )
-RETURNING id, chat, sender, receiver, message, sent_at
+RETURNING id, chat, sender, message, sent_at
 `
 
 type InsertMessageParams struct {
-	ID       pgtype.UUID `json:"id"`
-	Chat     pgtype.UUID `json:"chat"`
-	Sender   pgtype.UUID `json:"sender"`
-	Receiver pgtype.UUID `json:"receiver"`
-	Message  string `json:"message"`
+	ID      pgtype.UUID `json:"id"`
+	Chat    pgtype.UUID `json:"chat"`
+	Sender  pgtype.UUID `json:"sender"`
+	Message string      `json:"message"`
 }
 
 func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (Message, error) {
@@ -135,7 +129,6 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (M
 		arg.ID,
 		arg.Chat,
 		arg.Sender,
-		arg.Receiver,
 		arg.Message,
 	)
 	var i Message
@@ -143,7 +136,6 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (M
 		&i.ID,
 		&i.Chat,
 		&i.Sender,
-		&i.Receiver,
 		&i.Message,
 		&i.SentAt,
 	)

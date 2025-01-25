@@ -65,11 +65,11 @@ func insertQuery() uuid.UUID {
 		test.Fatalf(err.Error())
 	}
 
-	if id.String() != pgid.String() {
-		test.Fatalf("%s != %s", id.String(), pgid.String())
+	if id.String() != pgid.ID.String() {
+		test.Fatalf("%s != %s", id.String(), pgid.ID.String())
 	}
 
-	return models.ToGoogleUUID(pgid)
+	return models.ToGoogleUUID(pgid.ID)
 }
 
 func getQuery(id uuid.UUID) {

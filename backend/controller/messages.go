@@ -76,16 +76,25 @@ func GetMessagesByChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func InsertMessage(w http.ResponseWriter, r *http.Request) {
-	// Must validate params on frontend before they get here
-
-	params := database.InsertMessageParams{
-		ID: models.ToPgtypeUUID(uuid.New()),
-	}
+	params := database.InsertMessageParams{}
 
 	if err := decodeJSON(w, r, &params); err != nil {
 		return
 	}
 
+	chat, err := queries.GetChat(ctx, params.Chat)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "error saving message, chat may not exist")
+		slog.Debug(fmt.Sprintf("error saving message, chat may not exist: %s", err.Error()))
+		return
+	}
+
+	if params.Sender != chat.FirstUser && params.Sender != chat.SecondUser {
+		RespondError(w, http.StatusBadRequest, "user is not part of chat provided")
+		return
+	}
+
+	params.ID = models.ToPgtypeUUID(uuid.New())
 	message, err := queries.InsertMessage(ctx, params)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not save message, please try again later")

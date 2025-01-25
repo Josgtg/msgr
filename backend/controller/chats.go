@@ -77,11 +77,7 @@ func GetChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func InsertChat(w http.ResponseWriter, r *http.Request) {
-	// Must validate params on frontend before they get here
-
-	params := database.InsertChatParams{
-		ID: models.ToPgtypeUUID(uuid.New()),
-	}
+	params := database.InsertChatParams{}
 
 	if err := decodeJSON(w, r, &params); err != nil {
 		return
@@ -92,14 +88,14 @@ func InsertChat(w http.ResponseWriter, r *http.Request) {
 	} else if !exists {
 		RespondError(w, http.StatusBadRequest, "first user does not exist")
 		return
-	}
-	if exists, err := userExists(w, params.SecondUser); err != nil {
+	} else if exists, err := userExists(w, params.SecondUser); err != nil {
 		return
 	} else if !exists {
 		RespondError(w, http.StatusBadRequest, "second user does not exist")
 		return
 	}
 
+	params.ID = models.ToPgtypeUUID(uuid.New())
 	chat, err := queries.InsertChat(ctx, params)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not save chat, please try again later")

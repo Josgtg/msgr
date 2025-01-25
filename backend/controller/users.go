@@ -37,7 +37,7 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := queries.GetAllUsers(ctx)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "could not get users, please try again later")
-		slog.Debug("there was an error when getting users: %s", err.Error(), "")
+		slog.Debug(fmt.Sprintf("there was an error when getting users: %s", err.Error()))
 		return
 	}
 
@@ -89,11 +89,9 @@ func LogIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func InsertUser(w http.ResponseWriter, r *http.Request) {
-	// Must validate params on frontend before they get here
+	// FIXME: Must validate params
 
-	params := database.InsertUserParams{
-		ID: models.ToPgtypeUUID(uuid.New()),
-	}
+	params := database.InsertUserParams{}
 
 	if err := decodeJSON(w, r, &params); err != nil {
 		return
@@ -106,6 +104,7 @@ func InsertUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	params.ID = models.ToPgtypeUUID(uuid.New())
 	user, err := queries.InsertUser(ctx, params)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "could not save user, please try again later")

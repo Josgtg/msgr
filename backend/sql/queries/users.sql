@@ -33,7 +33,7 @@ INSERT INTO users(
     $3,
     $4
 )
-RETURNING (id, name, email, registered_at);
+RETURNING id, name, email, registered_at;
 
 -- name: DeleteUser :one
 DELETE FROM users

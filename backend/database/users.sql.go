@@ -95,7 +95,7 @@ INSERT INTO users(
     $3,
     $4
 )
-RETURNING (id, name, email, registered_at)
+RETURNING id, name, email, registered_at
 `
 
 type InsertUserParams struct {
@@ -105,16 +105,28 @@ type InsertUserParams struct {
 	Email    string      `json:"email"`
 }
 
-func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (interface{}, error) {
+type InsertUserRow struct {
+	ID           pgtype.UUID      `json:"id"`
+	Name         string           `json:"name"`
+	Email        string           `json:"email"`
+	RegisteredAt pgtype.Timestamp `json:"registered_at"`
+}
+
+func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (InsertUserRow, error) {
 	row := q.db.QueryRow(ctx, insertUser,
 		arg.ID,
 		arg.Name,
 		arg.Password,
 		arg.Email,
 	)
-	var column_1 interface{}
-	err := row.Scan(&column_1)
-	return column_1, err
+	var i InsertUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.RegisteredAt,
+	)
+	return i, err
 }
 
 const isUsedEmail = `-- name: IsUsedEmail :one

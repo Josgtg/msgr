@@ -71,6 +71,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 func LogIn(w http.ResponseWriter, r *http.Request) {
 	params := database.LoginParams{}
 
+	decodeJSON(w, r, &params)
+
 	if exists, err := isEmailUsed(w, params.Email); err != nil {
 		return
 	} else if !exists {

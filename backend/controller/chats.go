@@ -19,7 +19,7 @@ import (
 
 // Checks for admin or verifies that the user making the request is part of chat
 func validateChatOperation(w http.ResponseWriter, r *http.Request, firstUser pgtype.UUID, secondUser pgtype.UUID) bool {
-	session := GetSession(r)
+	session := GetSessionFromRequest(r)
 	if !session.Role.Satisfies(sessions.Admin) {
 		if session.UserID.String() != firstUser.String() && session.UserID.String() != secondUser.String() {
 			reqres.RespondError(w, http.StatusForbidden, "user has to appear in chat")

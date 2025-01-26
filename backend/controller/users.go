@@ -18,7 +18,7 @@ import (
 
 // Checks for admin or that user who requested operation is the one who the operation affects
 func validateUserOperation(w http.ResponseWriter, r *http.Request, id pgtype.UUID) bool {
-	session := GetSession(r)
+	session := GetSessionFromRequest(r)
 	if !session.Role.Satisfies(sessions.Admin) {
 		if session.ID.String() != id.String() {
 			reqres.RespondError(w, http.StatusForbidden, "you don't have permission to get this user chats")
@@ -61,6 +61,11 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reqres.RespondJSON(w, http.StatusOK, user)
+}
+
+func GetSession(w http.ResponseWriter, r *http.Request) {
+	session := GetSessionFromRequest(r)
+	reqres.RespondJSON(w, http.StatusOK, session)
 }
 
 func LogIn(w http.ResponseWriter, r *http.Request) {

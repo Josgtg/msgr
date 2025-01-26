@@ -17,7 +17,7 @@ import (
 
 // Checks for admin or verifies that the user making the request has sent the message
 func validateMessageOperation(w http.ResponseWriter, r *http.Request, sender pgtype.UUID) bool {
-	session := GetSession(r)
+	session := GetSessionFromRequest(r)
 	if !session.Role.Satisfies(sessions.Admin) {
 		if session.UserID.String() != sender.String() {
 			reqres.RespondError(w, http.StatusForbidden, "user must be the one who sent the message")

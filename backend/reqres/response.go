@@ -1,4 +1,4 @@
-package controller
+package reqres
 
 import (
 	"msgr/errors"
@@ -6,16 +6,20 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/unrolled/render"
 )
+
+var Rndr *render.Render
+var FrontendUrl string
 
 func RespondJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Add("Content-Type", "application/json")
-	w.Header().Add("Access-Control-Allow-Origin", frontendUrl)
+	w.Header().Add("Access-Control-Allow-Origin", FrontendUrl)
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Add("Access-Control-Allow-Headers", "*")
+	w.Header().Add("Access-Control-Allow-Headers", "Accept, Auth, Content-Type")
 	w.Header().Add("Access-Control-Allow-Credentials", "true")
 
-	rndr.JSON(w, status, v)
+	Rndr.JSON(w, status, v)
 }
 
 func RespondError(w http.ResponseWriter, status int, message string) {

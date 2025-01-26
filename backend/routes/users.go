@@ -2,6 +2,7 @@ package routes
 
 import (
 	"msgr/controller"
+	"msgr/middleware"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -9,12 +10,20 @@ import (
 func userRouter() chi.Router {
 	router := chi.NewRouter()
 
-	// FIXME: Must pass through a middleware to check admin
-	router.Get("/", controller.GetAllUsers)
+	router.Post("/register", controller.Register)
+	router.Post("/login", controller.LogIn)
 
-	router.Get("/{id}", controller.GetUser)
-	router.Post("/", controller.InsertUser)
-	router.Delete("/{id}", controller.DeleteUser)
+	router.Group(func(r chi.Router) {
+		r.Use(middleware.Admin)
+		r.Get("/", controller.GetAllUsers)
+	})
+
+	router.Group(func(r chi.Router) {
+		r.Use(middleware.SameUserID)
+		r.Get("/{id}", controller.GetUser)
+		r.Get("/{id}/chats", controller.GetUserChats)
+		r.Delete("/{id}", controller.DeleteUser)
+	})
 
 	return router
 }

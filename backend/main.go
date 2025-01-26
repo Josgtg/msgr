@@ -5,8 +5,10 @@ import (
 	"log/slog"
 	"msgr/controller"
 	"msgr/database"
+	"msgr/sessions"
 	"net/http"
 	"os"
+	"time"
 
 	"msgr/routes"
 
@@ -46,6 +48,13 @@ func main() {
 	controller.Initialize(frontendUrl, ctx, queries)
 
 	router := routes.CreateRouter()
+
+	go func() {
+		ch := time.Tick(sessions.SESSION_DURATION)
+		for range ch {
+			sessions.ClearSessions()
+		}
+	}()
 
 	slog.Info("started server at port " + port)
 	http.ListenAndServe(":"+port, router)

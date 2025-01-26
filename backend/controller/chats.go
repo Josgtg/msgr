@@ -1,132 +1,149 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"msgr/database"
 	"msgr/models"
+	"msgr/reqres"
+	"msgr/sessions"
+
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func chatExists(w http.ResponseWriter, id pgtype.UUID) (bool, error) {
-	exists, err := queries.ChatExists(ctx, id)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "there was an error when trying to check if chat existed, please try again later")
-		slog.Debug(fmt.Sprintf("there was an error when trying to check if chat existed: %s", err.Error()))
+// Checks for admin or verifies that the user making the request is part of chat
+func validateChatOperation(w http.ResponseWriter, r *http.Request, firstUser pgtype.UUID, secondUser pgtype.UUID) bool {
+	session := GetSession(r)
+	if !session.Role.Satisfies(sessions.Admin) {
+		if session.UserID.String() != firstUser.String() && session.UserID.String() != secondUser.String() {
+			reqres.RespondError(w, http.StatusForbidden, "user has to appear in chat")
+			return false
+		}
 	}
-	return exists, err
+	return true
 }
-
-// Methods
 
 func GetAllChats(w http.ResponseWriter, r *http.Request) {
 	chats, err := queries.GetAllChats(ctx)
 	if err != nil {
-		RespondError(w, http.StatusNotFound, "could not get chats, please try again later")
-		slog.Debug(fmt.Sprintf("there was an error when getting chats: %s", err.Error()))
+		if errors.Is(err, pgx.ErrNoRows) {
+			reqres.RespondError(w, http.StatusNotFound, "no chats were found")
+		} else {
+			reqres.RespondError(w, http.StatusNotFound, "could not get chats, please try again later")
+			slog.Debug(fmt.Sprintf("there was an error when getting chats: %s", err.Error()))
+		}
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, chats)
+	reqres.RespondJSON(w, http.StatusOK, chats)
 }
 
 func GetUserChats(w http.ResponseWriter, r *http.Request) {
-	id, err := getUrlID(w, r)
+	id, err := reqres.GetUrlID(w, r)
 	if err != nil {
 		return
 	}
 
-	pgid := models.ToPgtypeUUID(id)
-
-	chats, err := queries.GetChatsByUsers(ctx, pgid)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "could not get chats, please try again later")
-		slog.Debug(fmt.Sprintf("could not get chats: %s", err.Error()))
+	if !validateUserOperation(w, r, id) {
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, chats)
+	chats, err := queries.GetChatsByUsers(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			reqres.RespondError(w, http.StatusNotFound, "no chats were found")
+		} else {
+			reqres.RespondError(w, http.StatusNotFound, "could not get chats, please try again later")
+			slog.Debug(fmt.Sprintf("there was an error when getting chats: %s", err.Error()))
+		}
+		return
+	}
+
+	reqres.RespondJSON(w, http.StatusOK, chats)
 }
 
 func GetChat(w http.ResponseWriter, r *http.Request) {
-	id, err := getUrlID(w, r)
+	id, err := reqres.GetUrlID(w, r)
 	if err != nil {
 		return
 	}
 
-	pgid := models.ToPgtypeUUID(id)
-
-	if exists, err := chatExists(w, pgid); err != nil {
-		return
-	} else if !exists {
-		RespondError(w, http.StatusNotFound, "chat was not found")
-		return
-	}
-
-	chat, err := queries.GetChat(ctx, pgid)
+	chat, err := queries.GetChat(ctx, id)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "could not get chat, please try again later")
-		slog.Debug(fmt.Sprintf("could not get chats: %s", err.Error()))
+		if errors.Is(err, pgx.ErrNoRows) {
+			reqres.RespondError(w, http.StatusNotFound, "chat was not found")
+		} else {
+			reqres.RespondError(w, http.StatusInternalServerError, "could not get chat, please try again later")
+			slog.Debug(fmt.Sprintf("could not get chat: %s", err.Error()))
+		}
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, chat)
+	if !validateChatOperation(w, r, chat.FirstUser, chat.SecondUser) {
+		return
+	}
+
+	reqres.RespondJSON(w, http.StatusOK, chat)
 }
 
 func InsertChat(w http.ResponseWriter, r *http.Request) {
 	params := database.InsertChatParams{}
-
-	if err := decodeJSON(w, r, &params); err != nil {
+	if err := reqres.DecodeJSON(w, r, &params); err != nil {
 		return
 	}
 
-	if exists, err := userExists(w, params.FirstUser); err != nil {
-		return
-	} else if !exists {
-		RespondError(w, http.StatusBadRequest, "first user does not exist")
-		return
-	} else if exists, err := userExists(w, params.SecondUser); err != nil {
-		return
-	} else if !exists {
-		RespondError(w, http.StatusBadRequest, "second user does not exist")
+	if !validateChatOperation(w, r, params.FirstUser, params.SecondUser) {
 		return
 	}
 
 	params.ID = models.ToPgtypeUUID(uuid.New())
 	chat, err := queries.InsertChat(ctx, params)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "could not save chat, please try again later")
-		slog.Debug(fmt.Sprintf("could not save %v: %s", params, err.Error()))
+		if err, ok := err.(*pgconn.PgError); ok && err.Code == "23503" {
+			reqres.RespondError(w, http.StatusBadRequest, "one or both of the users provided do not exist")
+		} else {
+			reqres.RespondError(w, http.StatusInternalServerError, "could not save chat, please try again later")
+			slog.Debug(fmt.Sprintf("could not save %v: %s", params, err.Error()))
+		}
 		return
 	}
 
-	RespondJSON(w, http.StatusCreated, chat)
+	reqres.RespondJSON(w, http.StatusCreated, chat)
 }
 
 func DeleteChat(w http.ResponseWriter, r *http.Request) {
-	id, err := getUrlID(w, r)
+	id, err := reqres.GetUrlID(w, r)
 	if err != nil {
 		return
 	}
 
-	pgid := models.ToPgtypeUUID(id)
-
-	if exists, err := chatExists(w, pgid); err != nil {
-		return
-	} else if !exists {
-		RespondError(w, http.StatusBadRequest, "chat cannot be deleted because it does not exist")
+	chat, err := queries.GetChat(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			reqres.RespondError(w, http.StatusNotFound, "can not delete chat because it does not exist")
+		} else {
+			reqres.RespondError(w, http.StatusInternalServerError, "could not get chat, please try again later")
+			slog.Debug(fmt.Sprintf("could not get chat: %s", err.Error()))
+		}
 		return
 	}
 
-	deleted, err := queries.DeleteChat(ctx, pgid)
+	if !validateChatOperation(w, r, chat.FirstUser, chat.SecondUser) {
+		return
+	}
+
+	deleted, err := queries.DeleteChat(ctx, id)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "chat was not deleted, please try again later")
+		reqres.RespondError(w, http.StatusInternalServerError, "chat was not deleted, please try again later")
 		slog.Debug(fmt.Sprintf("could not delete chat: %s", err.Error()))
 		return
 	}
 
-	RespondID(w, http.StatusOK, deleted)
+	reqres.RespondID(w, http.StatusOK, deleted)
 }

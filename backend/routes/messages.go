@@ -2,6 +2,7 @@ package routes
 
 import (
 	"msgr/controller"
+	"msgr/middleware"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -9,14 +10,17 @@ import (
 func messageRouter() chi.Router {
 	router := chi.NewRouter()
 
-	// FIXME: Must pass through a middleware to check admin
-	router.Get("/", controller.GetAllMessages)
+	router.Group(func(r chi.Router) {
+		r.Use(middleware.Admin)
+		r.Get("/", controller.GetAllMessages)
+	})
 
-	router.Get("/{id}", controller.GetMessage)
-	router.Post("/", controller.InsertMessage)
-	router.Delete("/{id}", controller.DeleteMessage)
-
-	router.Get("/chat/{id}", controller.GetMessagesByChat)
+	router.Group(func(r chi.Router) {
+		r.Use(middleware.CheckSession)
+		r.Get("/{id}", controller.GetMessage)
+		r.Post("/", controller.InsertMessage)
+		r.Delete("/{id}", controller.DeleteMessage)
+	})
 
 	return router
 }

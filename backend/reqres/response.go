@@ -1,25 +1,43 @@
 package reqres
 
 import (
+	"encoding/json"
+	"fmt"
+	"log/slog"
 	"msgr/errors"
 	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/unrolled/render"
 )
 
-var Rndr *render.Render
 var FrontendUrl string
 
 func RespondJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Add("Content-Type", "application/json")
-	w.Header().Add("Access-Control-Allow-Origin", FrontendUrl)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", FrontendUrl)
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Add("Access-Control-Allow-Headers", "Accept, Auth, Content-Type")
-	w.Header().Add("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
 
-	Rndr.JSON(w, status, v)
+	marshall, err := json.Marshal(v)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(v.([]byte))
+		slog.Error(fmt.Sprintf("Error parsing to JSON: %v", v))
+		return
+	}
+
+	w.WriteHeader(status)
+	w.Write(marshall)
+}
+
+func RespondToken(w http.ResponseWriter, token string) {
+	response := struct {
+		Token string `json:"token"`
+	}{Token: token}
+
+	RespondJSON(w, http.StatusOK, response)
 }
 
 func RespondError(w http.ResponseWriter, status int, message string) {

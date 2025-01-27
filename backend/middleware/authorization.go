@@ -2,62 +2,73 @@ package middleware
 
 import (
 	"context"
+	"log/slog"
+	jwthandling "msgr/jwt-handling"
 	"msgr/reqres"
-	"msgr/sessions"
 	"net/http"
 )
 
-type ContextKey string
-
-const ContextUserKey ContextKey = ContextKey(sessions.COOKIE_NAME)
-
 func CheckSession(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, err := GetSessionFromCookie(w, r)
+		token, err := jwthandling.GetTokenFromRequest(w, r)
 		if err != nil {
 			return
 		}
 
-		rctx := context.WithValue(r.Context(), ContextUserKey, session)
+		rctx := context.WithValue(r.Context(), jwthandling.ContextUserKey, token)
 		handler.ServeHTTP(w, r.WithContext(rctx))
 	})
 }
 
 func Admin(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, err := GetSessionFromCookie(w, r)
+		token, err := jwthandling.GetTokenFromRequest(w, r)
 		if err != nil {
 			return
 		}
-		if !session.Role.Satisfies(sessions.Admin) {
-			reqres.RespondError(w, http.StatusForbidden, "must have admin permissions for this operation")
+
+		claims, err := jwthandling.GetTokenClaims(token)
+		if err != nil {
+			reqres.RespondError(w, http.StatusInternalServerError, err.Error())
+			slog.Error(err.Error())
 			return
 		}
 
-		rctx := context.WithValue(r.Context(), ContextUserKey, session)
+		if claims.Role != jwthandling.Admin {
+			reqres.RespondError(w, http.StatusForbidden, "must be admin to perform this operation")
+			return
+		}
+
+		rctx := context.WithValue(r.Context(), jwthandling.ContextUserKey, claims)
 		handler.ServeHTTP(w, r.WithContext(rctx))
 	})
 }
 
 func SameUserID(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id, err := reqres.GetUrlID(w, r)
-		if err != nil {
-			return
-		}
-		session, err := GetSessionFromCookie(w, r)
+		token, err := jwthandling.GetTokenFromRequest(w, r)
 		if err != nil {
 			return
 		}
 
-		if !session.Role.Satisfies(sessions.Admin) {
-			if session.ID.String() != id.String() {
-				reqres.RespondError(w, http.StatusForbidden, "you are not allowed to make this operation for this ID")
-				return
-			}
+		claims, err := jwthandling.GetTokenClaims(token)
+		if err != nil {
+			reqres.RespondError(w, http.StatusInternalServerError, err.Error())
+			slog.Error(err.Error())
+			return
 		}
 
-		rctx := context.WithValue(r.Context(), ContextUserKey, session)
+		requestedID, err := reqres.GetUrlID(w, r)
+		if err != nil {
+			return
+		}
+
+		if claims.UserID.String() != requestedID.String() {
+			reqres.RespondError(w, http.StatusForbidden, "you don't have permission to make operations on ID requested")
+			return
+		}
+
+		rctx := context.WithValue(r.Context(), jwthandling.ContextUserKey, claims)
 		handler.ServeHTTP(w, r.WithContext(rctx))
 	})
 }

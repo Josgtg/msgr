@@ -2,10 +2,7 @@ package reqres
 
 import (
 	"encoding/json"
-	"errors"
-	"log/slog"
 	"msgr/models"
-	"msgr/sessions"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -30,31 +27,6 @@ func GetUrlID(w http.ResponseWriter, r *http.Request) (pgtype.UUID, error) {
 	return models.ToPgtypeUUID(id), err
 }
 
-func GetSession(w http.ResponseWriter, r *http.Request) (sessions.Session, error) {
-	session := sessions.Session{}
-
-	id, err := r.Cookie(sessions.COOKIE_NAME)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "failed to get session cookie")
-		slog.Debug("failed to get cookie because it was not present, make sure there is a middleware between the methods")
-		return session, err
-	}
-
-	sessionID, err := uuid.Parse(id.Value)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "failed to parse session cookie")
-		slog.Debug("failed to get cookie because it was invalid, make sure there is a middleware between the methods")
-		return session, err
-	}
-
-	session, exists := sessions.Get(sessionID)
-	if !exists {
-		RespondError(w, http.StatusInternalServerError, "failed to parse session cookie")
-		slog.Debug(
-			"failed to get cookie because it did not exist on system, make sure the middleware handles expired sessions correctly",
-		)
-		return session, errors.New("session does not exist")
-	}
-
-	return session, nil
+func GetSession(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+	return nil, nil
 }

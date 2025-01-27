@@ -5,10 +5,9 @@ import (
 	"log/slog"
 	"msgr/controller"
 	"msgr/database"
-	"msgr/sessions"
+	jwthandling "msgr/jwt-handling"
 	"net/http"
 	"os"
-	"time"
 
 	"msgr/routes"
 
@@ -34,7 +33,12 @@ func main() {
 
 	var frontendUrl string = os.Getenv("FRONTEND_URL")
 	if frontendUrl == "" {
-		log.Fatal("variable DB_URL was not found in .env file")
+		log.Fatal("variable FRONTEND_URL was not found in .env file")
+	}
+
+	var jwtSecret string = os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("variable JWT_SECRET was not found in .env file")
 	}
 
 	ctx, conn, err := database.GetConnection(dbUrl)
@@ -46,15 +50,9 @@ func main() {
 	queries := database.New(conn)
 
 	controller.Initialize(frontendUrl, ctx, queries)
+	jwthandling.TokenSecret = []byte(jwtSecret)
 
 	router := routes.CreateRouter()
-
-	go func() {
-		ch := time.Tick(sessions.SESSION_DURATION)
-		for range ch {
-			sessions.ClearSessions()
-		}
-	}()
 
 	slog.Info("started server at port " + port)
 	http.ListenAndServe(":"+port, router)

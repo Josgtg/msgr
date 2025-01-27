@@ -31,10 +31,6 @@ func apiRouter() chi.Router {
 	router := chi.NewRouter()
 
 	router.Get("/health", controller.Health)
-	router.Group(func(r chi.Router) {
-		r.Use(middleware.CheckSession)
-		r.Get("/session", controller.GetSession)
-	})
 
 	router.NotFound(controller.NotFound)
 	router.MethodNotAllowed(controller.MethodNotAllowed)

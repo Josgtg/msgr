@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"msgr/database"
+	jwthandling "msgr/jwt-handling"
 	"msgr/models"
 	"msgr/reqres"
-	"msgr/sessions"
 
 	"net/http"
 
@@ -19,14 +19,12 @@ import (
 
 // Checks for admin or verifies that the user making the request is part of chat
 func validateChatOperation(w http.ResponseWriter, r *http.Request, firstUser pgtype.UUID, secondUser pgtype.UUID) bool {
-	session := GetSessionFromRequest(r)
-	if !session.Role.Satisfies(sessions.Admin) {
-		if session.UserID.String() != firstUser.String() && session.UserID.String() != secondUser.String() {
-			reqres.RespondError(w, http.StatusForbidden, "user has to appear in chat")
-			return false
-		}
+	claims, err := getClaimsFromRequestContext(w, r)
+	if err != nil {
+		return false
 	}
-	return true
+
+	return claims.Role == jwthandling.Admin || claims.UserID.String() == firstUser.String() || claims.UserID.String() == secondUser.String()
 }
 
 func GetAllChats(w http.ResponseWriter, r *http.Request) {
